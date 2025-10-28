@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Calculadora de congelación · Modo estudiante</title>
+<style>
+  :root{--ink:#0f172a;--muted:#64748b;--card:#ffffff;--border:#e5e7eb;--bg:#f8fafc;--pri:#2563eb;}
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0;background:var(--bg);color:var(--ink);font-family:Inter, Segoe UI, Roboto, Arial, sans-serif}
+  header{position:sticky;top:0;background:#fff;border-bottom:1px solid var(--border);z-index:10}
+  .wrap{max-width:980px;margin:0 auto;padding:14px 16px}
+  h1{font-size:clamp(1.1rem,1rem + 1.2vw,1.6rem);margin:0}
+  h2{font-size:1.05rem;margin:14px 0 8px}
+  .card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:14px;margin:12px 0}
+  .grid3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+  .grid2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+  label{font-weight:600;font-size:.92rem}
+  input[type=number],input[type=text],select{width:100%;padding:10px;border:1px solid var(--border);border-radius:10px;font-size:.95rem;background:#fff}
+  .row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+  .btn{background:var(--pri);color:#fff;border:none;border-radius:10px;padding:10px 14px;cursor:pointer}
+  .muted{color:var(--muted);font-size:.9rem}
+  table{width:100%;border-collapse:collapse;font-size:.92rem}
+  th,td{border-top:1px solid var(--border);padding:8px;text-align:right}
+  th:first-child,td:first-child{text-align:left}
+  .box{border:1px dashed var(--border);border-radius:12px;padding:10px;background:#fff}
+  .result{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
+  .mono{font-family:ui-monospace, SFMono-Regular, Menlo, Consolas, monospace}
+  .badge{display:inline-block;padding:4px 8px;border-radius:999px;background:#eef2ff;color:#3730a3;font-weight:600;font-size:.8rem}
+</style>
+</head>
+<body>
+<header><div class="wrap">
+  <h1>Calculadora de congelación · <span class="badge">Modo estudiante</span></h1>
+  <div class="muted">Secuencia: X₀A → M_S → X_A → x_A → x_H. Convención: K = 273 + °C. Propiedades: 20 °C si T≥T_f; −10 °C si T&lt;T_f.</div>
+</div></header>
+
+<main class="wrap">
+  <section class="card" id="ayudaRapida">
+    <h2 style="margin-top:0">Instrucciones rápidas</h2>
+    <ol style="margin:8px 0 0 18px">
+      <li>Elegí un <b>Producto</b> (por ejemplo, “Yema (libro)” o “Carne magra”).</li>
+      <li>Ajustá, si querés, las <b>fracciones másicas</b> de la composición y tocá <b>Normalizar</b>.</li>
+      <li>Indicá la <b>T<sub>f</sub></b> del alimento y la <b>T</b> objetivo. El resto se calcula solo.</li>
+    </ol>
+    <p class="muted" style="margin:10px 0 0">Esta versión oculta detalles avanzados (constantes y pasos intermedios) para enfocarse en resultados.</p>
+  </section>
+
+  <section class="card">
+    <h2>1) Composición (fracciones másicas a 20 °C)</h2>
+    <div class="row" style="gap:8px;margin:6px 0 8px">
+      <button class="btn" id="normalize">Normalizar Σ wᵢ = 1</button>
+      <span class="muted" id="sumHint">Σ wᵢ = 1.0000</span>
+      <label for="preset" style="margin-left:auto;font-weight:600">Producto</label>
+      <select id="preset">
+        <option value="yema" selected>Yema (libro)</option>
+        <option value="carne">Carne magra</option>
+        <option value="custom">Personalizado</option>
+      </select>
+    </div>
+    <div class="grid3">
+      <div><label>Agua</label><input id="w_water" type="number" step="0.0001" value="0.484"></div>
+      <div><label>Proteína</label><input id="w_prot" type="number" step="0.0001" value="0.160"></div>
+      <div><label>Grasa</label><input id="w_fat" type="number" step="0.0001" value="0.340"></div>
+      <div><label>Carbohidratos</label><input id="w_carb" type="number" step="0.0001" value="0.005"></div>
+      <div><label>Fibra</label><input id="w_fiber" type="number" step="0.0001" value="0.000"></div>
+      <div><label>Cenizas</label><input id="w_ash" type="number" step="0.0001" value="0.011"></div>
+    </div>
+  </section>
+
+  <section class="card">
+    <h2>2) Parámetros de congelación</h2>
+    <div class="grid2">
+      <div><label>T<sub>f</sub> (°C) — temperatura de congelación</label><input id="TfC" type="number" step="0.1" value="-0.5"></div>
+      <div><label>T (°C) — temperatura objetivo</label><input id="TobjC" type="number" step="0.1" value="-10"></div>
+      <div style="display:none"><label>λ (kJ/kmol), R (kJ/kmol·K), M<sub>w</sub> (kg/kmol)</label>
+        <input id="RMW" type="text" value="6003, 8.314, 18.0" readonly>
+        <div class="muted">Formato: λ, R, M<sub>w</sub>. Kelvin = 273 + °C.</div>
+      </div>
+      <div class="muted"><b>Estado</b>: <span class="badge" id="state">—</span> · <b>Resultado</b>: <span class="badge mono" id="MS_badge">M_S = —</span></div>
+    </div>
+  </section>
+
+  <section class="card">
+    <h2>3) Propiedades a T indicada</h2>
+    <div class="result">
+      <div class="box"><h3>x<sub>H</sub> (hielo)</h3><div class="mono" id="xH">—</div></div>
+      <div class="box"><h3>c<sub>p</sub> mezcla (kJ/kg·K)</h3><div class="mono" id="cp">—</div></div>
+      <div class="box"><h3>ρ mezcla (kg/m³)</h3><div class="mono" id="rho">—</div></div>
+      <div class="box"><h3>k (paralelo) (W/m·K)</h3><div class="mono" id="k">—</div></div>
+    </div>
+    <div class="result" style="margin-top:10px">
+      <div class="box"><h3>α mezcla (m²/s)</h3><div class="mono" id="alpha">—</div></div>
+      <div class="box"><h3>w<sub>líquida</sub> (agua)</h3><div class="mono" id="wliq">—</div></div>
+      <div class="box"><h3>w<sub>sólidos</sub></h3><div class="mono" id="wsol">—</div></div>
+      <div class="box"><h3>Chequeo Σ wᵢ</h3><div class="mono" id="checkW">—</div></div>
+    </div>
+  </section>
+
+  <section class="card" id="kModels">
+    <h2>Conductividad térmica de la mezcla: comparación de modelos</h2>
+    <div class="muted">El libro usa <b>paralelo</b> (cota superior). También se muestran serie (cota inferior) y promedio másico (intermedio).</div>
+    <table style="margin-top:10px">
+      <thead><tr><th>Modelo</th><th>Fórmula</th><th class="mono">k (W/m·K)</th></tr></thead>
+      <tbody>
+        <tr><td>Paralelo (cota superior)</td><td>kₚ = Σ φᵢ kᵢ</td><td class="mono" id="k_parallel">—</td></tr>
+        <tr><td>Promedio másico</td><td>kₘ = Σ wᵢ kᵢ</td><td class="mono" id="k_mass">—</td></tr>
+        <tr><td>Serie (cota inferior)</td><td>1/kₛ = Σ φᵢ/kᵢ</td><td class="mono" id="k_series">—</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <section class="card" style="margin-bottom:24px">
+    <div class="muted">Versión para estudiantes (v1). Diseñada para uso en clase y práctica individual.</div>
+  </section>
+
+</main>
+
+<script>
+function fmt(x,d=6){return (isFinite(x)?Number(x).toFixed(d):'—');}
+
+// Propiedades a 20 °C (Ibarz/C&O aproximado)
+const props20 = {
+  water:{rho:995.7, cp:4.177, k:0.6037},
+  prot:{rho:1319.5, cp:2.032, k:0.2016},
+  fat:{rho:917.2, cp:2.012, k:0.1254},
+  carb:{rho:1592.9, cp:1.586, k:0.1871},
+  fiber:{rho:1592.9, cp:1.586, k:0.1871},
+  ash:{rho:2418.2, cp:1.129, k:0.2910},
+  ice:{rho:916.8, cp:2.108, k:2.18}
+};
+
+// Propiedades a −10 °C (libro/Excel)
+const propsM10 = {
+  water:{rho:996.792821, cp:4.234278, k:0.55279437},
+  prot:{rho:1335.18, cp:1.99599791, k:0.16658082},
+  fat:{rho:929.776, cp:1.96898692, k:0.207756251},
+  carb:{rho:1602.205, cp:1.52858101, k:0.18710288},
+  fiber:{rho:1602.205, cp:1.52858101, k:0.18710288},
+  ash:{rho:2426.606, cp:1.0733583, k:0.31531831},
+  ice:{rho:918.1971, cp:2.002231, k:2.292013}
+};
+
+function chooseProps(isFrozen){ return isFrozen ? propsM10 : props20; }
+
+const PRESETS = {
+  yema:{ w:{water:0.484, prot:0.160, fat:0.340, carb:0.005, fiber:0.000, ash:0.011}, TfC:-0.5, TobjC:-10 },
+  carne:{ w:{water:0.700, prot:0.210, fat:0.050, carb:0.010, fiber:0.000, ash:0.030}, TfC:-1.2, TobjC:-10 }
+};
+
+function loadPreset(key){
+  const p=PRESETS[key]; if(!p) return;
+  document.getElementById('w_water').value=p.w.water;
+  document.getElementById('w_prot').value=p.w.prot;
+  document.getElementById('w_fat').value=p.w.fat;
+  document.getElementById('w_carb').value=p.w.carb;
+  document.getElementById('w_fiber').value=p.w.fiber;
+  document.getElementById('w_ash').value=p.w.ash;
+  document.getElementById('TfC').value=p.TfC;
+  document.getElementById('TobjC').value=p.TobjC;
+  compute();
+}
+
+function sumFractions(){
+  const w=[
+    Number(document.getElementById('w_water').value||0),
+    Number(document.getElementById('w_prot').value||0),
+    Number(document.getElementById('w_fat').value||0),
+    Number(document.getElementById('w_carb').value||0),
+    Number(document.getElementById('w_fiber').value||0),
+    Number(document.getElementById('w_ash').value||0)
+  ];
+  const s=w.reduce((a,b)=>a+b,0);
+  const hint=document.getElementById('sumHint');
+  if(hint){ hint.textContent='Σ wᵢ = '+fmt(s,4); hint.style.color=(Math.abs(s-1)<1e-6)?'var(--muted)':'#b91c1c'; }
+  return {w,s};
+}
+
+function compute(){
+  const {w:arrW,s}=sumFractions();
+  const [xA0,w_prot,w_fat,w_carb,w_fiber,w_ash]=arrW;
+
+  const TfC=Number(document.getElementById('TfC').value);
+  const TobjC=Number(document.getElementById('TobjC').value);
+  const [LAM,R_kJ,Mw]=(document.getElementById('RMW').value||'6003, 8.314, 18.0').split(',').map(s=>Number(s.trim()));
+
+  const xS=1-xA0;
+  const frozen=(TobjC<TfC);
+  const state=document.getElementById('state');
+  if(state){state.textContent=frozen?'Modo congelado':'Sin congelar';
+            state.style.background=frozen?'#dcfce7':'#e0f2fe'; state.style.color=frozen?'#14532d':'#0c4a6e';}
+
+  if(Math.abs(s-1)>1e-4){
+    ['xH','cp','rho','k','alpha','wliq','wsol','checkW','k_parallel','k_mass','k_series','vX0A','vMS','vXA','vxA','vxH'].forEach(id=>{const e=document.getElementById(id); if(e) e.textContent='—';});
+    return;
+  }
+
+  // Paso 1: X0A y MS (K = 273 + °C)
+  const TfK=TfC+273.0, Tref=273.0;
+  const X0A=Math.exp((LAM/R_kJ)*(1/Tref - 1/TfK));
+  const MS=(Mw*xS*X0A)/(xA0*(1-X0A));
+  const msb=document.getElementById('MS_badge'); if(msb) msb.textContent='M_S = '+fmt(MS,6)+' kg/kmol';
+  const v=(id,val)=>{const e=document.getElementById(id); if(e) e.textContent=fmt(val,6);};
+  v('vX0A',X0A); v('vMS',MS);
+
+  // Paso 2: XA a T objetivo, xA y xH (si está congelado)
+  const Tk=TobjC+273.0;
+  const XA=Math.exp((LAM/R_kJ)*(1/Tref - 1/Tk));
+  v('vXA',XA);
+
+  let xA = (Mw*xS*XA)/(MS*(1-XA));
+  let xH = Math.max(0, xA0 - xA);
+  if(!frozen){ xA = xA0; xH = 0; } // modo sin congelar
+  v('vxA',xA); v('vxH',xH);
+
+  // Elegir propiedades según estado
+  const P = chooseProps(frozen);
+
+  // Mezcla para propiedades
+  const comp=[
+    {w:xA, rho:P.water.rho, cp:P.water.cp, k:P.water.k},
+    {w:xH, rho:P.ice.rho,   cp:P.ice.cp,   k:P.ice.k},
+    {w:w_prot, rho:P.prot.rho, cp:P.prot.cp, k:P.prot.k},
+    {w:w_fat,  rho:P.fat.rho,  cp:P.fat.cp,  k:P.fat.k},
+    {w:w_carb, rho:P.carb.rho, cp:P.carb.cp, k:P.carb.k},
+    {w:w_fiber,rho:P.fiber.rho,cp:P.fiber.cp,k:P.fiber.k},
+    {w:w_ash,  rho:P.ash.rho,  cp:P.ash.cp,  k:P.ash.k}
+  ];
+
+  // c_p, rho
+  const cpMix=comp.reduce((s,c)=>s+c.w*c.cp,0);
+  const invRho=comp.reduce((s,c)=>s+(c.w/c.rho),0);
+  const rhoMix=1/invRho;
+
+  // k paralelo
+  const sum_w_over_rho=comp.reduce((s,c)=>s+(c.w/c.rho),0);
+  const kMix=comp.reduce((s,c)=>s+((c.w/c.rho)/sum_w_over_rho)*c.k,0);
+  const alpha=kMix/(rhoMix*(cpMix*1000));
+
+  // k modelos
+  const phi=comp.map(c=>(c.w/c.rho)/sum_w_over_rho);
+  const k_mass=comp.reduce((s,c)=>s+c.w*c.k,0);
+  const k_series=1.0/comp.reduce((s,c,i)=>s+(phi[i]/c.k),0);
+
+  // Mostrar
+  document.getElementById('xH').textContent=fmt(xH,6);
+  document.getElementById('cp').textContent=fmt(cpMix,6);
+  document.getElementById('rho').textContent=fmt(rhoMix,6);
+  document.getElementById('k').textContent=fmt(kMix,6);
+  document.getElementById('alpha').textContent=fmt(alpha,9);
+  document.getElementById('wliq').textContent=fmt(xA,6);
+  document.getElementById('wsol').textContent=fmt(xS,6);
+  document.getElementById('checkW').textContent=fmt(xA + xH + xS,6);
+
+  document.getElementById('k_parallel').textContent=fmt(kMix,6);
+  document.getElementById('k_mass').textContent=fmt(k_mass,6);
+  document.getElementById('k_series').textContent=fmt(k_series,6);
+}
+
+// Events
+['w_water','w_prot','w_fat','w_carb','w_fiber','w_ash','TfC','TobjC','RMW'].forEach(id=>{
+  document.getElementById(id).addEventListener('input', compute);
+});
+document.getElementById('normalize').addEventListener('click', ()=>{
+  const ids=['w_water','w_prot','w_fat','w_carb','w_fiber','w_ash'];
+  const vals=ids.map(id=>Number(document.getElementById(id).value||0));
+  const s=vals.reduce((a,b)=>a+b,0);
+  if(s<=0) return;
+  const scaled=vals.map(v=>v/s);
+  ids.forEach((id,i)=>document.getElementById(id).value=(Math.round(scaled[i]*1e6)/1e6));
+  compute();
+});
+document.getElementById('toggleDoc').addEventListener('click', ()=>{
+  const b=document.getElementById('docBody');
+  b.style.display = (b.style.display==='none'?'block':'none');
+});
+document.getElementById('preset').addEventListener('change', (e)=>loadPreset(e.target.value));
+
+// Init
+document.addEventListener('DOMContentLoaded', ()=>{loadPreset('yema'); compute();});
+</script>
+</body>
+</html>
