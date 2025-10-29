@@ -39,9 +39,9 @@
   <section class="card" id="ayudaRapida">
     <h2 style="margin-top:0">Instrucciones rápidas</h2>
     <ol style="margin:8px 0 0 18px">
-      <li>Elegí un <b>Producto</b> (por ejemplo, “Yema (libro)” o “Carne magra”).</li>
+      <li>Elegí un <b>Producto</b> (por ejemplo, “Yema” o “Carne magra”).</li>
       <li>Ajustá, si querés, las <b>fracciones másicas</b> de la composición y tocá <b>Normalizar</b>.</li>
-      <li>Indicá la <b>T<sub>f</sub></b> del alimento y la <b>T</b> objetivo. El resto se calcula solo.</li>
+      <li>Indicá la <b>T<sub>cong</sub></b> del alimento y la <b>T</b> objetivo. El resto se calcula solo.</li>
     </ol>
     <p class="muted" style="margin:10px 0 0">Esta versión oculta detalles avanzados (constantes y pasos intermedios) para enfocarse en resultados.</p>
   </section>
@@ -71,7 +71,7 @@
   <section class="card">
     <h2>2) Parámetros de congelación</h2>
     <div class="grid2">
-      <div><label>T<sub>f</sub> (°C) — temperatura de congelación</label><input id="TfC" type="number" step="0.1" value="-0.5"></div>
+      <div><label>T<sub>cong</sub> (°C) — temperatura de congelación</label><input id="TfC" type="number" step="0.1" value="-0.5"></div>
       <div><label>T (°C) — temperatura objetivo</label><input id="TobjC" type="number" step="0.1" value="-10"></div>
       <div style="display:none"><label>λ (kJ/kmol), R (kJ/kmol·K), M<sub>w</sub> (kg/kmol)</label>
         <input id="RMW" type="text" value="6003, 8.314, 18.0" readonly>
